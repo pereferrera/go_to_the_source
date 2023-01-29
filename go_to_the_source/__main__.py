@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 
 import openai
@@ -61,11 +60,11 @@ START_OF_PAGE
 END_OF_PAGE
 -------------
 
-After reading this content, would you now say the answer "{engine_question}" 
-to the question "{engine_answer}" has been confirmed or disclaimed?
+After reading this content, would you now say the answer "{engine_answer}" 
+to the question "{engine_question}" has been confirmed or disclaimed?
 Please answer one of the three options: 
-1 - "Yes, confirmed as mentioned in: ... (please quote supporting text from the web page content)"
-2 - "Neither confirmed nor disclaimed" or 
+1 - "Yes, confirmed as mentioned in: ..." (please quote supporting text from the web page content)
+2 - "Neither confirmed nor disclaimed"
 3 - "Disclaimed, I now think the right answer is: ..."
 """
 
@@ -127,32 +126,6 @@ if __name__ == '__main__':
     print(f"GPT-3 answers: {gpt_answer}")
 
     google_results = get_google_results(suggested_search_query)
-
-#    gpt_select_result_prompt = get_prompt_for_google_result(
-#        engine_question=engine_question,
-#        engine_answer=engine_answer,
-#        google_search_query=suggested_search_query,
-#        search_results=google_results)
-
-#    print(f"\nWe ask GPT-3: {gpt_select_result_prompt}")
-
-#    gpt_answer = prompt_gpt3(gpt_prompt=gpt_select_result_prompt)
-
-#    print(f"GPT-3 answers: {gpt_answer}")
-
-#    suggested_title_result = gpt_answer.strip().replace('"', '')
-
-#    reference_link = None
-
-#    for res in google_results:
-#        if suggested_title_result == res['title']:
-#            print(f"\nGot it, must visit {res['link']} to confirm your claim!")
-#            reference_link = res['link']
-
-#    if not reference_link:
-#        print('GPT-3 found no relevant page in Google search results to '
-#              'confirm its claim!')
-#        sys.exit(1)
 
     for res in google_results:
         print(f"Attempting to crawl {res['link']}")

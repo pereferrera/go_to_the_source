@@ -28,3 +28,7 @@ Please answer one of the three options: "Yes, confirmed", "Neither confirmed nor
 GPT-3 answers:
 Yes, confirmed
 ```
+
+## How it works
+
+![Sequence diagram](diagram.png)
