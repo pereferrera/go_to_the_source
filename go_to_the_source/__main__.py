@@ -1,14 +1,21 @@
 import os
-import requests
+import sys
 import json
 
 import openai
 
+from go_to_the_source.constants import REQUIRED_ENV, OPENAI_KEY_ENV,\
+    MAX_PROMPT_LENGTH
+from go_to_the_source.utils import prompt_gpt3, get_google_results,\
+    web_page_to_text
+
 """
 Let's make LLMs accountable! They are trapped in a cage without Internet
-connection, but we can provide them with what they need to support their
+connection, but we can provide them with what they need to support their own
 claims. Given a claim, we are going to make them search Google until they
-find a source that supports it!
+find a source that supports it! Because we are whole-hearted, we are then also
+going to give them the chance to either confirm or dismiss what they said,
+and instead provide a different answer.
 """
 
 
@@ -21,7 +28,7 @@ The engine then told me:
 "{engine_answer}"
 
 I would like to verify this answer by searching Google and hopefully finding
-a relevant page that likely contains information that confirms this.
+a relevant page that contains information that confirms this.
 """
 
 PROMPT_FOR_GOOGLE_SEARCH_TEMPLATE = """{prompt_context}
@@ -40,37 +47,23 @@ click on? Please write the title of the result I should click on, and nothing
 else. If no result is relevant enough from this list, please answer "None". 
 """
 
-GOOGLE_API_KEY_ENV = 'GOOGLE_API_KEY'
-GOOGLE_API_CX_ENV = 'GOOGLE_API_CX'
-OPENAI_KEY_ENV = 'OPENAI_KEY'
+PROMPT_FOR_CONFIRMATION = """{prompt_context}
+So we have found the following web page content that must confirm this answer.
+Here is the web page content, verbatim, enclosed between START_OF_PAGE and
+END_OF_PAGE:
 
-REQUIRED_ENV = [GOOGLE_API_KEY_ENV,
-                GOOGLE_API_CX_ENV,
-                OPENAI_KEY_ENV]
+-------------
+START_OF_PAGE
+{crawled_page}
+END_OF_PAGE
+-------------
 
-
-def get_google_results(query):
-    # Make the request to the Google Search API
-    url = 'https://customsearch.googleapis.com/customsearch/v1'
-    params = {
-        'q': query,
-        'key': os.environ[GOOGLE_API_KEY_ENV],
-        'cx': os.environ[GOOGLE_API_CX_ENV]
-    }
-    response = requests.get(url, params=params)
-
-    if response.status_code == 200:
-        resp = json.loads(response.text)
-        if 'items' not in resp:
-            raise Exception(f'Google search {query} did not return anything!')
-        return [
-            {'title': i['title'],
-             'link': i['link'],
-             'snippet': i['snippet']}
-            for i in resp['items']
-        ]
-
-    raise Exception(response.status_code)
+After reading this content, would you say the answer "{engine_question}" 
+to the question "{engine_answer}" has been confirmed or contradicted?
+Please answer one of the three options: 
+"Yes, confirmed", "Neither confirmed nor contradicted" or 
+"Contradicted, I now think the right answer is: ..."
+"""
 
 
 def get_basic_context(engine_question: str, engine_answer: str):
@@ -94,18 +87,14 @@ def get_prompt_for_google_result(engine_question: str, engine_answer: str,
         google_results_json=json.dumps(search_results, indent=4))
 
 
-def prompt_gpt3(gpt_prompt: str):
-    response = openai.Completion.create(
-        engine="text-davinci-003",
-        prompt=gpt_prompt,
-        temperature=0.7,
-        max_tokens=256,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.0
-    )
-
-    return response['choices'][0]['text']
+def get_prompt_for_confirmation(engine_question: str, engine_answer: str,
+                                crawled_page: str):
+    return PROMPT_FOR_CONFIRMATION.format(
+        prompt_context=get_basic_context(engine_question,
+                                         engine_answer),
+        crawled_page=crawled_page,
+        engine_question=engine_question,
+        engine_answer=engine_answer)
 
 
 if __name__ == '__main__':
@@ -149,6 +138,33 @@ if __name__ == '__main__':
 
     suggested_title_result = gpt_answer.strip().replace('"', '')
 
+    reference_link = None
+
     for res in google_results:
-        if res['title'] == suggested_title_result:
+        # sometimes GPT removes punctuations
+        if suggested_title_result in res['title']:
             print(f"\nGot it, must visit {res['link']} to confirm your claim!")
+            reference_link = res['link']
+
+    if not reference_link:
+        print('GPT-3 found no relevant page in Google search results to '
+              'confirm its claim!')
+        sys.exit(1)
+
+    print('Attempting to crawl the selected link...')
+    crawled_page = web_page_to_text(reference_link)
+
+    # reasonably trim the crawled content to avoid exceeding the prompt length
+    crawled_page = crawled_page[:min(len(crawled_page),
+                                     MAX_PROMPT_LENGTH - 1000)]
+
+    gpt_confirmation_prompt = get_prompt_for_confirmation(
+        engine_question=engine_question,
+        engine_answer=engine_answer,
+        crawled_page=crawled_page)
+
+    print(f"\nWe ask GPT-3: {gpt_confirmation_prompt}")
+
+    gpt_answer = prompt_gpt3(gpt_prompt=gpt_confirmation_prompt)
+
+    print(f"GPT-3 answers: {gpt_answer}")

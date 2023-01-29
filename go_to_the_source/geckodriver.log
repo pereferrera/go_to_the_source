@@ -1,0 +1,5 @@
+1674981336067	geckodriver	INFO	Listening on 127.0.0.1:37713
+1674981437798	geckodriver	INFO	Listening on 127.0.0.1:34677
+1674981489049	geckodriver	INFO	Listening on 127.0.0.1:54567
+1674981489060	mozrunner::runner	INFO	Running command: "/usr/bin/firefox" "--marionette" "-no-remote" "-profile" "/tmp/rust_mozprofiler0svy4"
+/usr/bin/firefox: 1: which: not found
