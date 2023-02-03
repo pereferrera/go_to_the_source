@@ -1,0 +1,19 @@
+@startuml
+actor       User       as user
+participant AI      as ai
+boundary    "Google Search API"   as google_search_api
+boundary    "Selenium"    as selenium
+control    "Script"   as script
+
+user -> ai:  "Prompt question"
+ai -> script: "Answer to question"
+script -> ai:  "Prompt for Google search query"
+ai -> script:  "Suggested Google search query"
+script -> google_search_api:  "Search Google"
+google_search_api -> script:  "Search results"
+script -> selenium:   "Crawl results"
+selenium -> script:   "Crawled pages content"
+script -> ai:  "Prompt for verification or disclaim"
+ai -> script:  "Verification / disclaim"
+script -> user:   "Supporting links / quotes + potentially corrected answer"
+@enduml

@@ -1,5 +1,4 @@
 import os
-import sys
 import json
 
 import openai
@@ -19,16 +18,17 @@ and instead provide a different answer.
 """
 
 
-BASIC_CONTEXT = """I made the following question to an AI engine:
+BASIC_CONTEXT = """I made you the following question:
 
 "{engine_question}"
 
-The engine then told me:
+You then answered:
 
 "{engine_answer}"
 
-I would like to verify this answer by searching Google and hopefully finding
-a relevant page that contains information that confirms this.
+AI engines are sometimes wrong. Therefore I would like to either verify or 
+disclaim this answer by searching in Google and finding a page with content 
+relevant to this question and answer.
 """
 
 PROMPT_FOR_GOOGLE_SEARCH_TEMPLATE = """{prompt_context}
@@ -48,9 +48,11 @@ else. If no result is relevant enough from this list, please answer "None".
 """
 
 PROMPT_FOR_CONFIRMATION = """{prompt_context}
-So we have found the following web page content that must confirm this answer.
+After searching, we have found the following web page content that either 
+confirms or disclaims the answer to the question.
 Here is the web page content, verbatim, enclosed between START_OF_PAGE and
-END_OF_PAGE:
+END_OF_PAGE. Please pay close attention to it, especially if you find
+ sentences that clearly disclaim the answer to the question given!
 
 -------------
 START_OF_PAGE
@@ -58,11 +60,12 @@ START_OF_PAGE
 END_OF_PAGE
 -------------
 
-After reading this content, would you say the answer "{engine_question}" 
-to the question "{engine_answer}" has been confirmed or contradicted?
+After reading this content, would you now say the answer "{engine_answer}" 
+to the question "{engine_question}" has been confirmed or disclaimed?
 Please answer one of the three options: 
-"Yes, confirmed", "Neither confirmed nor contradicted" or 
-"Contradicted, I now think the right answer is: ..."
+1 - "Yes, confirmed as mentioned in: ..." (please quote supporting text from the web page content)
+2 - "Neither confirmed nor disclaimed"
+3 - "Disclaimed, I now think the right answer is: ..."
 """
 
 
@@ -124,47 +127,25 @@ if __name__ == '__main__':
 
     google_results = get_google_results(suggested_search_query)
 
-    gpt_select_result_prompt = get_prompt_for_google_result(
-        engine_question=engine_question,
-        engine_answer=engine_answer,
-        google_search_query=suggested_search_query,
-        search_results=google_results)
-
-    print(f"\nWe ask GPT-3: {gpt_select_result_prompt}")
-
-    gpt_answer = prompt_gpt3(gpt_prompt=gpt_select_result_prompt)
-
-    print(f"GPT-3 answers: {gpt_answer}")
-
-    suggested_title_result = gpt_answer.strip().replace('"', '')
-
-    reference_link = None
-
     for res in google_results:
-        # sometimes GPT removes punctuations
-        if suggested_title_result in res['title']:
-            print(f"\nGot it, must visit {res['link']} to confirm your claim!")
-            reference_link = res['link']
+        print(f"Attempting to crawl {res['link']}")
+        crawled_page = web_page_to_text(res['link'])
 
-    if not reference_link:
-        print('GPT-3 found no relevant page in Google search results to '
-              'confirm its claim!')
-        sys.exit(1)
+        # reasonably trim the crawled content to avoid exceeding the prompt
+        # length
+        crawled_page = crawled_page[:min(len(crawled_page),
+                                         MAX_PROMPT_LENGTH - 1000)]
 
-    print('Attempting to crawl the selected link...')
-    crawled_page = web_page_to_text(reference_link)
+        gpt_confirmation_prompt = get_prompt_for_confirmation(
+            engine_question=engine_question,
+            engine_answer=engine_answer,
+            crawled_page=crawled_page)
 
-    # reasonably trim the crawled content to avoid exceeding the prompt length
-    crawled_page = crawled_page[:min(len(crawled_page),
-                                     MAX_PROMPT_LENGTH - 1000)]
+        print(f"\nWe ask GPT-3: {gpt_confirmation_prompt}")
 
-    gpt_confirmation_prompt = get_prompt_for_confirmation(
-        engine_question=engine_question,
-        engine_answer=engine_answer,
-        crawled_page=crawled_page)
+        gpt_answer = prompt_gpt3(gpt_prompt=gpt_confirmation_prompt)
 
-    print(f"\nWe ask GPT-3: {gpt_confirmation_prompt}")
+        print(f"GPT-3 answers: {gpt_answer}")
 
-    gpt_answer = prompt_gpt3(gpt_prompt=gpt_confirmation_prompt)
-
-    print(f"GPT-3 answers: {gpt_answer}")
+        if 'neither' not in gpt_answer.lower():
+            break
