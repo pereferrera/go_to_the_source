@@ -6,7 +6,7 @@ import openai
 from go_to_the_source.constants import REQUIRED_ENV, OPENAI_KEY_ENV,\
     MAX_PROMPT_LENGTH
 from go_to_the_source.utils import prompt_gpt3, get_google_results,\
-    web_page_to_text
+    web_page_to_text, prompt_chatgpt
 
 """
 Let's make LLMs accountable! They are trapped in a cage without Internet
@@ -106,19 +106,28 @@ if __name__ == '__main__':
 
     openai.api_key = os.environ[OPENAI_KEY_ENV]
 
+    llm = os.environ.get('USE_LLM', 'ChatGPT')
+
+    if llm == 'GPT-3':
+        prompt_fn = prompt_gpt3
+    elif llm == 'ChatGPT':
+        prompt_fn = prompt_chatgpt
+    else:
+        raise ValueError(f'Unsupported LLM {llm}')
+
     engine_question = input(
         'Please input a simple (single-line) prompt '
-        'that you want to make to GPT-3: ')
+        f'that you want to make to {llm}: ')
     engine_answer = prompt_gpt3(engine_question).strip()
 
-    print(f"GPT-3 says: {engine_answer}")
-    print("Now let's make GPT-3 accountable!")
+    print(f"{llm} says: {engine_answer}")
+    print(f"Now let's make the {llm} accountable!")
 
     gpt_search_prompt = get_prompt_for_google_search(
         engine_question=engine_question,
         engine_answer=engine_answer)
 
-    print(f"\nWe ask GPT-3: {gpt_search_prompt}")
+    print(f"\nWe ask {llm}: {gpt_search_prompt}")
 
     gpt_answer = prompt_gpt3(gpt_prompt=gpt_search_prompt)
     suggested_search_query = gpt_answer.strip().replace('"', '')
@@ -141,11 +150,11 @@ if __name__ == '__main__':
             engine_answer=engine_answer,
             crawled_page=crawled_page)
 
-        print(f"\nWe ask GPT-3: {gpt_confirmation_prompt}")
+        print(f"\nWe ask {llm}: {gpt_confirmation_prompt}")
 
         gpt_answer = prompt_gpt3(gpt_prompt=gpt_confirmation_prompt)
 
-        print(f"GPT-3 answers: {gpt_answer}")
+        print(f"{llm} answers: {gpt_answer}")
 
         if 'neither' not in gpt_answer.lower():
             break

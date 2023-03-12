@@ -51,6 +51,19 @@ def prompt_gpt3(gpt_prompt: str) -> str:
     return response['choices'][0]['text']
 
 
+def prompt_chatgpt(gtp_prompt: str) -> str:
+    """returns the textual answer of ChatGPT to the passed
+    prompt"""
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "user", "content": gtp_prompt},
+        ]
+    )
+
+    return response['choices'][0]['text']
+
+
 def web_page_to_text(url: str) -> str:
     """simply visit the passed url and convert it to human-readable text"""
     options = Options()

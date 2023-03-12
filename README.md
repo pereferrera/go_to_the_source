@@ -1,6 +1,8 @@
 # Go-to-the-source! (towards accountable LLMs)
 
-Let's make LLMs accountable! They are trapped in a cage without Internet connection, but we can provide them with what they need to support their claims. Given a claim, we are going to make them search Google until they find a source that supports it! Because we are whole-hearted, we are then also going to give them the chance to either confirm or dismiss what they said, and instead provide a different answer.
+*Note: this project was made when ChatGPT was new and the only game in town. Quickly after that, a lot of new LLMs with different capabilities appeared...*
+
+Let's make LLMs accountable! They are usally trapped in a cage without Internet connection, but we can provide them with what they need to support their claims. Given a claim, we are going to make them search Google until they find a source that supports it! Because we are whole-hearted, we are then also going to give them the chance to either confirm or dismiss what they said, and instead provide a different answer.
 
 To try this prototype, you will need programmatic access to the Google Search API and the Open AI API. Then, set the following environment variables: `GOOGLE_API_KEY`, `GOOGLE_API_CX`, `OPENAI_KEY`.
 
@@ -25,6 +27,8 @@ Got it, must visit https://en.wikipedia.org/wiki/List_of_awards_and_nominations_
 Yes, confirmed ...
 ```
 
+To use another LLM other than ChatGPT (only GPT-3), set environment variable `USE_LLM` to `GPT-3`.
+
 ## How it works
 
 Basically, it goes as follows:
@@ -38,6 +42,5 @@ Basically, it goes as follows:
 
 ## Future improvements
 
-* Integrate with ChatGPT (when the API is available).
 * Do a comprehensive test to extract some more conclusions. Are there cases where the first answer was right and the reconsidered answer is wrong?
 * Improve logging / output. Right now everything is printed including the crawled content, but we might want to have more or less verbose outputs.
