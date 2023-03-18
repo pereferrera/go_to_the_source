@@ -1,7 +1,9 @@
 # Go-to-the-source! (towards accountable LLMs)
 
 *Note: this project was made when ChatGPT was new and the only game in town. Quickly after that, a lot of new LLMs with different capabilities appeared...*
+
 *Note II: I learned recently that what I implemented here is similar to something called the ReAct pattern, see [https://til.simonwillison.net/llms/python-react-pattern?s=03](this link)*
+
 Let's make LLMs accountable! They are usally trapped in a cage without Internet connection, but we can provide them with what they need to support their claims. Given a claim, we are going to make them search Google until they find a source that supports it! Because we are whole-hearted, we are then also going to give them the chance to either confirm or dismiss what they said, and instead provide a different answer.
 
 To try this prototype, you will need programmatic access to the Google Search API and the Open AI API. Then, set the following environment variables: `GOOGLE_API_KEY`, `GOOGLE_API_CX`, `OPENAI_KEY`.
